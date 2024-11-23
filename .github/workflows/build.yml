@@ -28,23 +28,26 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          GOBIN: ${{ github.workspace }}/build
         run: |
           # 创建构建目录
           mkdir -p build
 
-          # 安装到指定目录
-          go install tailscale.com/cmd/derper@latest
+          # 获取最新的 derper 代码
+          go get tailscale.com/cmd/derper@latest
 
-          # 重命名二进制文件
+          # 确定输出文件名
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            mv build/derper.exe build/derper-${{ matrix.goos }}-${{ matrix.goarch }}.exe
+            OUTPUT="build/derper-${{ matrix.goos }}-${{ matrix.goarch }}.exe"
           else
-            mv build/derper build/derper-${{ matrix.goos }}-${{ matrix.goarch }}
+            OUTPUT="build/derper-${{ matrix.goos }}-${{ matrix.goarch }}"
           fi
+
+          # 直接构建到目标文件
+          go build -o $OUTPUT tailscale.com/cmd/derper
 
           # 显示构建结果
           ls -la build/
+          file build/*
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
