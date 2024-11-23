@@ -5,9 +5,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,25 +28,34 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          GOBIN: ${{ github.workspace }}/build
         run: |
+          # 创建构建目录
+          mkdir -p build
+
+          # 安装到指定目录
           go install tailscale.com/cmd/derper@latest
-          mkdir -p dist
+
+          # 重命名二进制文件
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            cp $(go env GOPATH)/bin/derper.exe dist/derper-${{ matrix.goos }}-${{ matrix.goarch }}.exe
+            mv build/derper.exe build/derper-${{ matrix.goos }}-${{ matrix.goarch }}.exe
           else
-            cp $(go env GOPATH)/bin/derper dist/derper-${{ matrix.goos }}-${{ matrix.goarch }}
+            mv build/derper build/derper-${{ matrix.goos }}-${{ matrix.goarch }}
           fi
+
+          # 显示构建结果
+          ls -la build/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: derper-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: dist/*
+          path: build/derper-*
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: dist/*
+          files: build/derper-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
